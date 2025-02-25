@@ -7,7 +7,7 @@ import java.util.List;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
 
-public interface ApodService {
+public interface ApodProxyService {
 
   @GET("apod")
   Single<List<Apod>> getDateRange(
@@ -15,4 +15,11 @@ public interface ApodService {
       @Query("end_date") LocalDate endDate,
       @Query("api_key") String apiKey);
 
+  @GET
+  Single<Apod> getToday(@Query("api_key") String apiKey);
+
+  Single<List<Apod>>  getOpenDateRange(
+      @Query("start_date") LocalDate startDate,
+      @Query("api_key") String apiKey
+  );
 }
