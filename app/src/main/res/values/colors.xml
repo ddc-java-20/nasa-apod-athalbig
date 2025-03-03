@@ -16,6 +16,8 @@
 -->
 <resources>
 
+  <color name="out_of_month">#FFB0B0B0</color>
+
   <!--TODO Define color resources.   -->
 
 </resources>
