@@ -1,13 +1,16 @@
 package edu.cnm.deepdive.nasaapod.controller;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
+import com.kizitonwose.calendar.core.CalendarMonth;
 import dagger.hilt.android.AndroidEntryPoint;
 import edu.cnm.deepdive.nasaapod.R;
 import edu.cnm.deepdive.nasaapod.adapter.DayBinder;
@@ -21,6 +24,7 @@ import java.time.temporal.WeekFields;
 import java.util.Locale;
 import java.util.Map;
 import javax.inject.Inject;
+import kotlin.Unit;
 
 @AndroidEntryPoint
 public class CalendarFragment extends Fragment {
@@ -46,11 +50,12 @@ public class CalendarFragment extends Fragment {
         .getFirstDayOfWeek();
     YearMonth currentMonth = YearMonth.now();
     // TODO: 3/3/25 Attach a listener to dayBinder.
+    dayBinder.setListener((apod) -> Log.d(TAG, apod.getDate().toString()));
     binding = FragmentCalendarBinding.inflate(inflater, container, false);
     binding.calendar.setDayBinder(dayBinder);
     // TODO: 3/3/25 Set month header binding on calendar.
+    binding.calendar.setMonthScrollListener(this::handlMonthScroll);
     binding.calendar.setup(firstApodMonth, currentMonth, firstDayOfWeek);
-    // TODO: 3/3/25  Set a month scroll listener on calendar.
     return binding.getRoot();
   }
 
@@ -59,15 +64,18 @@ public class CalendarFragment extends Fragment {
     super.onViewCreated(view, savedInstanceState);
     viewModel = new ViewModelProvider(requireActivity()) //Connect to ViewModel & observe LiveData.
         .get(ApodViewModel.class);
+    LifecycleOwner owner = getViewLifecycleOwner();
     viewModel
         .getApodMap()
-        .observe(getViewLifecycleOwner(), this::handleApods);
-    // TODO: 2/28/25 Observe livedata and start asynchronous processes, as necessary.
+        .observe(owner, this::handleApods);
+    viewModel
+        .getYearMonth()
+        .observe(owner, this::handleYearMonth);
   }
 
   @Override
   public void onDestroyView() {
-    // TODO: 2/28/25 Release references to binding.
+    binding = null;
     super.onDestroyView();
   }
 
@@ -81,6 +89,19 @@ public class CalendarFragment extends Fragment {
         .map(YearMonth::from)
         .distinct()
         .forEach(binding.calendar::notifyMonthChanged);
+  }
+
+  private void handleYearMonth(YearMonth yearMonth) {
+    if (!yearMonth.equals(selectedMonth)) {
+      binding.calendar.scrollToMonth(yearMonth);
+      selectedMonth = yearMonth;
+    }
+  }
+
+  @NonNull
+  private Unit handlMonthScroll(CalendarMonth calendarMonth) {
+    viewModel.setYearMonth(calendarMonth.getYearMonth());
+    return Unit.INSTANCE;
   }
 
 }
