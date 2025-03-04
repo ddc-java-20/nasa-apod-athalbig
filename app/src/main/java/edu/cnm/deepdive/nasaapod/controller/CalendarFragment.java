@@ -1,7 +1,8 @@
 package edu.cnm.deepdive.nasaapod.controller;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import com.kizitonwose.calendar.core.CalendarMonth;
 import dagger.hilt.android.AndroidEntryPoint;
 import edu.cnm.deepdive.nasaapod.R;
@@ -17,6 +19,7 @@ import edu.cnm.deepdive.nasaapod.adapter.DayBinder;
 import edu.cnm.deepdive.nasaapod.adapter.HeaderBinder;
 import edu.cnm.deepdive.nasaapod.databinding.FragmentCalendarBinding;
 import edu.cnm.deepdive.nasaapod.model.entity.Apod;
+import edu.cnm.deepdive.nasaapod.model.entity.Apod.MediaType;
 import edu.cnm.deepdive.nasaapod.viewmodel.ApodViewModel;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -51,12 +54,11 @@ public class CalendarFragment extends Fragment {
     DayOfWeek firstDayOfWeek = WeekFields.of(Locale.getDefault())
         .getFirstDayOfWeek();
     YearMonth currentMonth = YearMonth.now();
-    // TODO: 3/3/25 Attach a listener to dayBinder.
-    dayBinder.setListener((apod) -> Log.d(TAG, apod.getDate().toString()));
+    dayBinder.setListener(this::showApod);
     binding = FragmentCalendarBinding.inflate(inflater, container, false);
     binding.calendar.setDayBinder(dayBinder);
     binding.calendar.setMonthHeaderBinder(headerBinder); // Set month header binding on calendar.
-    binding.calendar.setMonthScrollListener(this::handlMonthScroll);
+    binding.calendar.setMonthScrollListener(this::handleMonthScroll);
     binding.calendar.setup(firstApodMonth, currentMonth, firstDayOfWeek);
     return binding.getRoot();
   }
@@ -93,6 +95,16 @@ public class CalendarFragment extends Fragment {
         .forEach(binding.calendar::notifyMonthChanged);
   }
 
+  private void showApod(Apod apod) {
+    if (apod.getMediaType() == MediaType.IMAGE) {
+      Navigation.findNavController(binding.getRoot())
+          .navigate(CalendarFragmentDirections.showImage(apod.getId()));
+    } else {
+      Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(apod.getLowDefUrl().toString()));
+      startActivity(intent);
+    }
+  }
+
   private void handleYearMonth(YearMonth yearMonth) {
     if (!yearMonth.equals(selectedMonth)) {
       binding.calendar.scrollToMonth(yearMonth);
@@ -101,7 +113,7 @@ public class CalendarFragment extends Fragment {
   }
 
   @NonNull
-  private Unit handlMonthScroll(CalendarMonth calendarMonth) {
+  private Unit handleMonthScroll(CalendarMonth calendarMonth) {
     viewModel.setYearMonth(calendarMonth.getYearMonth());
     return Unit.INSTANCE;
   }
